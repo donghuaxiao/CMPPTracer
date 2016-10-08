@@ -1,40 +1,19 @@
 package com.ericsson.protocol;
 
-public class CMPPConnect {
+import java.nio.ByteBuffer;
 
-	  private int pktLength;
-	    private int cmdType;
-	    private int seq;
-	    
+import com.ericsson.util.Utils;
+
+public class CMPPConnect extends Request {
+
 	    private String sourceAddr;
 	    
 	    private String authenticatorSource;
 	    
 	    private byte version;
+	    
+	    private int timestamp;
 
-		public int getPktLength() {
-			return pktLength;
-		}
-
-		public void setPktLength(int pktLength) {
-			this.pktLength = pktLength;
-		}
-
-		public int getCmdType() {
-			return cmdType;
-		}
-
-		public void setCmdType(int cmdType) {
-			this.cmdType = cmdType;
-		}
-
-		public int getSeq() {
-			return seq;
-		}
-
-		public void setSeq(int seq) {
-			this.seq = seq;
-		}
 
 		public String getSourceAddr() {
 			return sourceAddr;
@@ -59,6 +38,43 @@ public class CMPPConnect {
 		public void setVersion(byte version) {
 			this.version = version;
 		}
-	    
-	    
+
+		public int getTimestamp() {
+			return timestamp;
+		}
+
+		public void setTimestamp(int timestamp) {
+			this.timestamp = timestamp;
+		}
+
+		@Override
+		public void setBody(ByteBuffer buffer) {
+			setSourceAddr(Utils.getStringFromByteBuffer(buffer, 6));
+			setAuthenticatorSource(Utils.getStringFromByteBuffer(buffer, 16));
+			setVersion(buffer.get());
+			setTimestamp(buffer.getInt());
+		}
+
+		@Override
+		public ByteBuffer getBody() {
+			ByteBuffer buffer = ByteBuffer.allocate(27);
+			buffer.put( Utils.toBytes(getSourceAddr(), 6));
+			buffer.put( Utils.toBytes(getAuthenticatorSource(), 16));
+			buffer.put(getVersion());
+			buffer.putInt(getTimestamp());
+			return buffer;
+		}
+
+		@Override
+		public void setData(ByteBuffer buffer) {
+			this.header.setData(buffer);
+			this.setBody(buffer);
+		}
+
+		@Override
+		public ByteBuffer getData() {
+			ByteBuffer buffer = this.header.getData();
+			buffer.put( this.getBody().array());
+			return buffer;
+		}
 }

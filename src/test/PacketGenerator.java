@@ -16,9 +16,9 @@ public class PacketGenerator {
 	public static ByteBuffer  createMessage( String spId,  byte messageFormat, String srcId, String[] destTerminalId, String message) {
 		
 		CMPPSubmit packet = new CMPPSubmit();
-		packet.setCmdType(CMPP.CMPP_SUBMIT);
+		packet.getHeader().setCmdtype(CMPP.CMPP_SUBMIT);
 		
-		packet.setMsgId(0);
+		packet.setMsgId(new byte[8]);
 		packet.setPkTotal((byte)1);
 		packet.setPkNumber((byte)1);
 		packet.setRegisteredDelivery((byte)1);
@@ -43,52 +43,11 @@ public class PacketGenerator {
 		packet.setDestTerminalType((byte)1);
 		packet.setMsgLength((byte)message.length());
 		packet.setMsgContent(message);
-		packet.setReserve( PacketGenerator.toFixLengthString("0", 20));
+		packet.setLinkId( PacketGenerator.toFixLengthString("0", 20));
 		
-		packet.setPktLength( 163 + destTerminalId.length * 32 + message.length());
+		packet.getHeader().setPacketLength( 163 + destTerminalId.length * 32 + message.length());
 		
-		ByteBuffer buffer = ByteBuffer.allocate(packet.getPktLength());
-		//set Header
-		buffer.putInt(packet.getPktLength());
-		buffer.putInt(packet.getCmdType());
-		buffer.putInt(packet.getSeq());
-		
-		// set body
-		buffer.putLong(packet.getMsgId());
-		buffer.put(packet.getPkTotal());
-		buffer.put(packet.getPkNumber());
-		buffer.put(packet.getRegisteredDelivery());
-		buffer.put(packet.getMsgLevel());
-		
-		buffer.put(packet.getServiceId().getBytes());
-		buffer.put(packet.getFeeUserType());
-		buffer.put(packet.getFeeTerminalId().getBytes());
-		buffer.put(packet.getFeeTerminalType());
-		
-		buffer.put(packet.getTpPid());
-		buffer.put(packet.getTpUdhi());
-		buffer.put(packet.getMsgFormat());
-		buffer.put( packet.getMsgSrc().getBytes());
-		buffer.put( packet.getFeeType().getBytes());
-		buffer.put(packet.getFeeCode().getBytes());
-		
-		buffer.put( packet.getValidTime().getBytes());
-		buffer.put( packet.getAtTime().getBytes());
-		
-		buffer.put( packet.getSrcId().getBytes());
-		
-		buffer.put( packet.getDestUsrtl());
-		
-		for ( String terminalId: packet.getDestTerminalId()) {
-			buffer.put( PacketGenerator.toFixLengthString(terminalId, 32).getBytes());
-		}
-		
-		buffer.put(packet.getDestTerminalType());
-		buffer.put( packet.getMsgLength());
-		buffer.put( packet.getMsgContent().getBytes());
-		buffer.put( packet.getReserve().getBytes());
-		
-		return buffer;
+		return packet.getData();
 		
 	}
 }

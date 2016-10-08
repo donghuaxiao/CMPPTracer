@@ -8,9 +8,6 @@ public class DefaultPacketFilter implements PacketFilter {
     Ip4 ip = new Ip4();
 
     public boolean isMatch(PcapPacket packet) {
-        if (packet.hasHeader(ip)) {
-            System.out.println(ip.source() + " -----> " + ip.destination());
-        }
         return true;
     }
 }

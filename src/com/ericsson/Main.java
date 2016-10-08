@@ -1,15 +1,5 @@
 package com.ericsson;
 
-import com.ericsson.filter.DestTerminalFilter;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import org.jnetpcap.Pcap;
-import org.jnetpcap.PcapBpfProgram;
-import org.jnetpcap.PcapDumper;
-import org.jnetpcap.packet.PcapPacket;
-
-import com.ericsson.writer.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -17,6 +7,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -24,7 +15,14 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.jnetpcap.Pcap;
+import org.jnetpcap.PcapBpfProgram;
+import org.jnetpcap.PcapDumper;
 import org.jnetpcap.PcapIf;
+
+import com.ericsson.filter.DestTerminalFilter;
+import com.ericsson.util.TimerScheduler;
+import com.ericsson.util.Utils;
 
 public class Main {
 
@@ -54,29 +52,16 @@ public class Main {
         String confFile = cmd.getOptionValue("conf");
         String destTerminalId = cmd.getOptionValue("msisdn");
         
-        InputStream input = Main.class.getResourceAsStream(confFile);
-        
-        Properties prop = new Properties();
-        try {
-            prop.load(input);
-        } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        Properties props = null;
         
 
-        StringBuilder errbuf = new StringBuilder();
-
-        String interfaceName = "eno16777736";
+        String interfaceName = "\\Device\\NPF_{DF7EFF6C-DFBF-4E18-B418-4C33D41257FA}";
 
         List<PcapIf> alldevs = new ArrayList<PcapIf>();
-
+        StringBuilder errbuf = new StringBuilder();
         if (Pcap.findAllDevs(alldevs, errbuf) != Pcap.OK) {
             System.err.println("Can't read list of device, error is :" + errbuf.toString());
             System.exit(1);
-        }
-
-        for (PcapIf dev : alldevs) {
-            System.out.println(dev.getDescription());
         }
 
         PcapBpfProgram filter = new PcapBpfProgram();
@@ -101,48 +86,54 @@ public class Main {
             return;
         }
 
-//               String fileName = "ipmc_smsgw_test_03.pcap";
-//               
-//                
-//                URL url = Main.class.getResource(fileName);
-//		String pcapFile = url.getFile();
-//
-//		Pcap pcap = Pcap.openOffline(pcapFile, errbuf);
-//
-//		if (pcap == null) {
-//			System.err.printf("Failed to open File %s to capture: ", pcapFile);
-//		}
-//		if (pcap.compile(filter, "tcp dst port 7890", 0, 0) != Pcap.OK) {
-//			System.err.println("Failed compile filter: " + pcap.getErr());
-//			System.exit(1);
-//		}
-//
-//		if (pcap.setFilter(filter) != Pcap.OK) {
-//			System.err.println("Failed to set Filter: " + pcap.getErr());
-//			System.exit(1);
-//		}
-        PcapDumper dumper = pcap.dumpOpen("out.pcap");
 
-        BlockingQueue<PcapPacket> captureQueue = new LinkedBlockingQueue<PcapPacket>();
-        BlockingQueue<PcapPacket> writeQueue = new LinkedBlockingQueue<PcapPacket>();
+		if (pcap.compile(filter, "tcp port 7890", 0, 0) != Pcap.OK) {
+			System.err.println("Failed compile filter: " + pcap.getErr());
+			System.exit(1);
+		}
 
-        PacketCapture capture = new PacketCapture(captureQueue, pcap);
-        //capture.setPacketFilter( new CMPPSubmitPacketFilter());
-        PacketParser parser = new PacketParser(captureQueue, writeQueue);
-        DestTerminalFilter terminalFilter = new DestTerminalFilter(new String[]{"8613656197474"});
+		if (pcap.setFilter(filter) != Pcap.OK) {
+			System.err.println("Failed to set Filter: " + pcap.getErr());
+			System.exit(1);
+		}
+		
+		if (confFile != null) {
+			destTerminalId = null;
+		  try {
+				props = Utils.loadProperties(confFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+	        
+	        String msisdns = props.getProperty("msisdns");
+	        String[] phoneNumbers = msisdns.split(",");
+	        String s_startTime = props.getProperty("starttime");
+	        String s_endTime = props.getProperty("stoptime");
+	        
+	        PcapDumper dumper = pcap.dumpOpen("out.pcap");
 
-		//parser.setPacketFilter(terminalFilter);
-        Thread writePacket = new Thread(new FileWriter(writeQueue, dumper));
+	        DestTerminalFilter terminalFilter = new DestTerminalFilter(phoneNumbers);
 
-        capture.start();
-        parser.start();
-        writePacket.start();
-        try {
-            writePacket.join();
-        } catch (InterruptedException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-        }
+	        TracerExecutor executor = new TracerExecutor(pcap, dumper, terminalFilter);
+	        
+	        TimerScheduler scheduler = new TimerScheduler(executor, Utils.getTime(s_startTime),
+	        		Utils.getTime(s_endTime));
+		} else if ( destTerminalId != null) {
+			
+			PcapDumper dumper = pcap.dumpOpen(destTerminalId + ".pcap");
 
+	        DestTerminalFilter terminalFilter = new DestTerminalFilter(new String[]{destTerminalId});
+
+	        TracerExecutor executor = new TracerExecutor(pcap, dumper, terminalFilter);
+	        executor.start();
+	        
+		} else {
+			PcapDumper dumper = pcap.dumpOpen("out.pcap");
+	        TracerExecutor executor = new TracerExecutor(pcap, dumper, null);
+	        executor.start();
+		}
+		
     }
 
 }

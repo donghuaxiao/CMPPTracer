@@ -16,9 +16,9 @@ public class CMPPSubmitPacketFilter implements PacketFilter{
 		if (packet.hasHeader(tcp)) {
 			byte [] data = tcp.getPayload();
                         
-                        if ( data.length < CMPP.CMPP_HEAD_LEN) {
-                            return false;
-                        }
+            if ( data.length < CMPP.CMPP_HEAD_LEN) {
+                return false;
+            }
 			byte [] header = new byte[CMPP.CMPP_HEAD_LEN];
 			System.arraycopy(data, 0, header, 0, CMPP.CMPP_HEAD_LEN);
 			ByteBuffer headerBuffer = ByteBuffer.wrap(header);

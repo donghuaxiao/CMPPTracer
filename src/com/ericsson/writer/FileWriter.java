@@ -10,34 +10,31 @@ public class FileWriter implements Runnable {
 
     private BlockingQueue<PcapPacket> queue;
 
+    /**
+     * PcapDumper 负责把数据包写到文件中去
+     */
     private PcapDumper dumper;
     
-    private boolean isExit = false;
+    /**
+     *  停止线程标志
+     */
+    private boolean isStopped = false;
     
-    private class ExitHandler extends Thread {
-
-        @Override
-        public void run() {
-            System.out.println("Exit...");
-            isExit = true;
-        }
-       
-    }
+    private Thread thread;
+    
 
     public FileWriter(BlockingQueue<PcapPacket> queue, PcapDumper dumper) {
         this.queue = queue;
         this.dumper = dumper;
-        Runtime.getRuntime().addShutdownHook( new ExitHandler());
     }
 
     public void run() {
-        while ( !isExit || queue.isEmpty() ) {
+        while ( !isStopped || queue.isEmpty() ) {
             try {
                 PcapPacket packet = queue.take();
                 JBuffer jbuf = new JBuffer(packet.getTotalSize());
                 packet.transferTo(jbuf);
                 dumper.dump(packet.getCaptureHeader(), jbuf);
-                System.out.println(packet.toHexdump());
             } catch (InterruptedException e) {
                 dumper.flush();
                 e.printStackTrace();
@@ -48,4 +45,18 @@ public class FileWriter implements Runnable {
         dumper.close();
     }
     
+    
+    public void stop() {
+    	this.isStopped = true;
+    }
+    
+    public void start() {
+    	thread = new Thread(this);
+    	thread.start();
+    }
+    
+    public void join() throws InterruptedException {
+    	thread.join();
+    }
+       
 }

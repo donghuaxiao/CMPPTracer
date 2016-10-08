@@ -21,6 +21,8 @@ public class PacketCapture implements Runnable {
 	private PcapPacket packet = new PcapPacket(JBuffer.POINTER);
 	
 	private PacketFilter packetFilter = new DefaultPacketFilter();
+	
+	private Thread _thread;
 
 	public PacketCapture(BlockingQueue<PcapPacket> queue, Pcap pcap){
 		this.shareQueue = queue;
@@ -41,18 +43,23 @@ public class PacketCapture implements Runnable {
 	}
 
 	public void start() {
-		Thread thread = new Thread(this);
+		this._thread = new Thread(this);
 		this.stop = false;
-		thread.start();
+		this._thread.start();
 	}
 	
 	public void stop() {
 		this.stop = true;
 	}
+	
+	public void join() throws InterruptedException {
+		this._thread.join();
+	}
 
 	public PacketFilter getPacketFilter() {
 		return packetFilter;
 	}
+	
 
 	public void setPacketFilter(PacketFilter packetFilter) {
 		this.packetFilter = packetFilter;

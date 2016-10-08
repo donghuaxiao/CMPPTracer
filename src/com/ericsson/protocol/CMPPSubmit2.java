@@ -1,20 +1,18 @@
 package com.ericsson.protocol;
 
-import java.nio.ByteBuffer;
+public class CMPPSubmit2 {
 
-import com.ericsson.util.Utils;
-
-
-public class CMPPSubmit extends Request {
-
-    private byte[] msgId = new byte[8];
-    private byte pkTotal = 0;
-    private byte pkNumber = 0;
+    private int pktLength;
+    private int cmdType;
+    private int seq;
+    private long msgId;
+    private byte pkTotal;
+    private byte pkNumber;
     private byte registeredDelivery;
     private byte msgLevel;
     private String serviceId;
     private byte feeUserType;
-    private String feeTerminalId; //琚璐圭敤鎴�
+    private String feeTerminalId; //被计费用�?
     
     private byte feeTerminalType;
 
@@ -31,7 +29,7 @@ public class CMPPSubmit extends Request {
     private String validTime;
     private String atTime;
 
-    /*鍘熷彿鐮�*/
+    /*原号�?*/
     private String srcId;
 
     private byte destUsrtl;
@@ -44,14 +42,38 @@ public class CMPPSubmit extends Request {
 
     private String msgContent;
 
-    private String linkId;
+    private String reserve;
 
-    public byte[] getMsgId() {
+    public int getPktLength() {
+        return pktLength;
+    }
+
+    public void setPktLength(int pktLength) {
+        this.pktLength = pktLength;
+    }
+
+    public int getCmdType() {
+        return cmdType;
+    }
+
+    public void setCmdType(int cmdType) {
+        this.cmdType = cmdType;
+    }
+
+    public int getSeq() {
+        return seq;
+    }
+
+    public void setSeq(int seq) {
+        this.seq = seq;
+    }
+
+    public long getMsgId() {
         return msgId;
     }
-    
-    public void setMsgId( byte[] msgId){
-    	this.msgId = msgId;
+
+    public void setMsgId(long msgId) {
+        this.msgId = msgId;
     }
 
     public byte getPkTotal() {
@@ -231,98 +253,12 @@ public class CMPPSubmit extends Request {
         this.msgContent = msgContent;
     }
 
-    public String getLinkId() {
-        return linkId;
+    public String getReserve() {
+        return reserve;
     }
 
-    public void setLinkId(String reserve) {
-        this.linkId = reserve;
+    public void setReserve(String reserve) {
+        this.reserve = reserve;
     }
-
-	@Override
-	public void setBody(ByteBuffer buffer) {
-		buffer.get(msgId);
-		setPkTotal(buffer.get());
-		setPkNumber(buffer.get());
-		setRegisteredDelivery(buffer.get());
-		setMsgLevel( buffer.get() );
-		
-		setServiceId(Utils.getStringFromByteBuffer(buffer, 10) );
-		setFeeUserType( buffer.get());
-		setFeeTerminalId(Utils.getStringFromByteBuffer(buffer, 32));
-                setFeeTerminalType(buffer.get());
-                
-		setTpPid(buffer.get());
-		setTpUdhi(buffer.get());
-		setMsgFormat(buffer.get());
-		setMsgSrc(Utils.getStringFromByteBuffer(buffer, 6));
-		setFeeType(Utils.getStringFromByteBuffer(buffer, 2));
-		setFeeCode( Utils.getStringFromByteBuffer(buffer, 6));
-                
-		setValidTime(Utils.getStringFromByteBuffer(buffer, 17));
-		setAtTime(Utils.getStringFromByteBuffer(buffer, 17));
-		setSrcId(Utils.getStringFromByteBuffer(buffer, 21));
-                
-		byte count = buffer.get();
-		setDestUsrtl(count);
-		String destTerminals = Utils.getStringFromByteBuffer(buffer, 32 * count);
-		setDestTerminalId( Utils.getDestTerminalId(destTerminals));
-		setDestTerminalType(buffer.get());
-		byte length = buffer.get();
-		setMsgLength(length);
-		setMsgContent(Utils.getStringFromByteBuffer(buffer, length));
-		setLinkId(Utils.getStringFromByteBuffer(buffer, 20));
-	}
-
-	@Override
-	public ByteBuffer getBody() {
-		ByteBuffer buffer = ByteBuffer.allocate(this.header.getPacketLength() - CMPP.CMPP_HEAD_LEN);
-		buffer.put(this.msgId);
-		buffer.put(this.getPkTotal());
-		buffer.put(this.getPkNumber());
-		buffer.put(this.getRegisteredDelivery());
-		buffer.put(this.getMsgLevel());
-		
-		buffer.put( Utils.toBytes(getServiceId(), 10));
-		buffer.put( getFeeUserType());
-		buffer.put( Utils.toBytes(getFeeTerminalId(), 32));
-		buffer.put( getFeeTerminalType());
-		
-		buffer.put( getTpPid());
-		buffer.put( getTpUdhi());
-		buffer.put(getMsgFormat());
-		buffer.put( Utils.toBytes(getMsgSrc(), 6));
-		buffer.put( Utils.toBytes(getFeeType(), 2));
-		
-		buffer.put( Utils.toBytes(getFeeCode(), 6));
-		buffer.put( Utils.toBytes(getValidTime(), 17));
-		buffer.put( Utils.toBytes(getAtTime(), 17));
-		buffer.put( Utils.toBytes(getSrcId(), 21));
-		
-		buffer.put(getDestUsrtl());
-		for ( String terminalId: getDestTerminalId()) {
-			buffer.put( Utils.toBytes(terminalId, 32));
-		}
-		
-		buffer.put(getDestTerminalType());
-		buffer.put( getMsgLength());
-		buffer.put( getMsgContent().getBytes());
-		buffer.put( getLinkId().getBytes());
-		
-		return buffer;
-	}
-
-	@Override
-	public void setData(ByteBuffer buffer) {
-		this.header.setData(buffer);
-		this.setBody(buffer);
-	}
-
-	@Override
-	public ByteBuffer getData() {
-		ByteBuffer buffer = this.header.getData();
-		buffer.put( this.getBody().array());
-		return buffer;
-	}
 
 }

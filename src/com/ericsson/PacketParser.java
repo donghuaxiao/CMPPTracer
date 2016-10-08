@@ -16,6 +16,8 @@ public class PacketParser implements Runnable {
     private PacketFilter packetFilter = new DefaultPacketFilter();
     
     private boolean isExit = false;
+    
+    private Thread _thread;
 
     public PacketParser(BlockingQueue<PcapPacket> readQueue, BlockingQueue<PcapPacket> writeQueue) {
         this.shareQueue = readQueue;
@@ -50,7 +52,11 @@ public class PacketParser implements Runnable {
     }
     
     public void start() {
-        Thread t = new Thread(this);
-        t.start();
+        this._thread = new Thread(this);
+        this._thread.start();
+    }
+    
+    public void join() throws InterruptedException {
+    	this._thread.join();
     }
 }

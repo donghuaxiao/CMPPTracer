@@ -1,54 +1,51 @@
 package com.ericsson.protocol;
 
-public class CMPPSubmitResp {
+import java.nio.ByteBuffer;
+
+public class CMPPSubmitResp extends Response {
 	
-	private int pktLength;
-	private int cmdType;
-	private int seq;
+	private byte[] msgId = new byte[8];
 
-	private long msgId;
+	private int result;
 
-	private byte result;
 
-	public int getPktLength() {
-		return pktLength;
-	}
-
-	public void setPktLength(int pktLength) {
-		this.pktLength = pktLength;
-	}
-
-	public int getCmdType() {
-		return cmdType;
-	}
-
-	public void setCmdType(int cmdType) {
-		this.cmdType = cmdType;
-	}
-
-	public int getSeq() {
-		return seq;
-	}
-
-	public void setSeq(int seq) {
-		this.seq = seq;
-	}
-
-	public long getMsgId() {
+	public byte[] getMsgId() {
 		return msgId;
 	}
 
-	public void setMsgId(long msgId) {
-		this.msgId = msgId;
-	}
-
-	public byte getResult() {
+	public int getResult() {
 		return result;
 	}
 
-	public void setResult(byte result) {
+	public void setResult(int result) {
 		this.result = result;
 	}
-	
+
+	@Override
+	public void setBody(ByteBuffer buffer) {
+		buffer.get(this.msgId);
+		setResult(buffer.getInt());
+	}
+
+	@Override
+	public ByteBuffer getBody() {
+		ByteBuffer buffer = ByteBuffer.allocate(12);
+		buffer.put(this.msgId);
+		buffer.putInt(getResult());
+		return buffer;
+	}
+
+	@Override
+	public void setData(ByteBuffer buffer) {
+		this.header.setData(buffer);
+		this.setBody(buffer);
+	}
+
+	@Override
+	public ByteBuffer getData() {
+		ByteBuffer buffer = this.header.getData();
+		buffer.put( this.getBody().array());
+		return buffer;
+	}
 	
 }
