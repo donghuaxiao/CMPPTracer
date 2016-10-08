@@ -54,7 +54,6 @@ public class TracerExecutor {
 			this.parser.setPacketFilter(filter);
 		}
 		
-		
 		this.fileWriter = new FileWriter(storeQueue, dumper);
 		Runtime.getRuntime().addShutdownHook( new ExitHandler());
 	}

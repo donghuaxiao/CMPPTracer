@@ -119,6 +119,7 @@ public class Main {
 	        
 	        TimerScheduler scheduler = new TimerScheduler(executor, Utils.getTime(s_startTime),
 	        		Utils.getTime(s_endTime));
+	        
 		} else if ( destTerminalId != null) {
 			
 			PcapDumper dumper = pcap.dumpOpen(destTerminalId + ".pcap");
