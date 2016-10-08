@@ -12,7 +12,7 @@ public class CMPPSubmit2 {
     private byte msgLevel;
     private String serviceId;
     private byte feeUserType;
-    private String feeTerminalId; //被计费用�?
+    private String feeTerminalId; 
     
     private byte feeTerminalType;
 
@@ -29,7 +29,7 @@ public class CMPPSubmit2 {
     private String validTime;
     private String atTime;
 
-    /*原号�?*/
+   
     private String srcId;
 
     private byte destUsrtl;
