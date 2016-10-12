@@ -34,7 +34,6 @@ public class DefaultPacketFilter implements PacketFilter {
                     printSubmitMessage(submit);
                     return true;
                 }
-
             }
     	}
         return false;

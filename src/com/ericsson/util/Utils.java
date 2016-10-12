@@ -41,18 +41,7 @@ public class Utils {
 		return calendar.getTime();
 	}
 	
-	public static Properties loadProperties( String filename) throws IOException {
-		File file= new File(filename);
-		InputStream input = null;
-		try {
-			input = new FileInputStream(file);
-		} catch( FileNotFoundException ex ) {
-			throw new IOException(ex.getMessage());
-		}
-		Properties prop = new Properties();
-		prop.load(input);
-		return prop;
-	}
+	
 	
 	public static Date getTime(String time) {
 		String[] times = time.split(":");

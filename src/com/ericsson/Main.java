@@ -1,12 +1,9 @@
 package com.ericsson;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -15,12 +12,10 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.jnetpcap.Pcap;
-import org.jnetpcap.PcapBpfProgram;
-import org.jnetpcap.PcapDumper;
-import org.jnetpcap.PcapIf;
 
 import com.ericsson.filter.DestTerminalFilter;
+import com.ericsson.filter.TcpFilter;
+import com.ericsson.util.PropertiesUtils;
 import com.ericsson.util.TimerScheduler;
 import com.ericsson.util.Utils;
 
@@ -55,52 +50,33 @@ public class Main {
         Properties props = null;
         
 
-        String interfaceName = "\\Device\\NPF_{DF7EFF6C-DFBF-4E18-B418-4C33D41257FA}";
-
-        List<PcapIf> alldevs = new ArrayList<PcapIf>();
-        StringBuilder errbuf = new StringBuilder();
-        if (Pcap.findAllDevs(alldevs, errbuf) != Pcap.OK) {
-            System.err.println("Can't read list of device, error is :" + errbuf.toString());
-            System.exit(1);
+        //String filter = "tcp port 7890";
+        String filter = null;
+        String fileName = "packet-out.pcap";
+        
+        String confFileName = "conf/cmpp.conf";
+        
+        Properties confProperties = null;
+        
+        try {
+        	confProperties = PropertiesUtils.getProperties(confFileName);
+        } catch(IOException ex) {
+        	System.out.println(ex.getMessage());
+        	System.exit(1);
         }
+        
+       String devs = confProperties.getProperty("devs");
+       
+       List<String> alldevs = new ArrayList<>();
+       for (String dev : devs.split(",")) {
+    	   alldevs.add( dev );
+       }
 
-        PcapBpfProgram filter = new PcapBpfProgram();
-
-        PcapIf targetDev = null;
-
-        for (PcapIf eth : alldevs) {
-            if (interfaceName.equals(eth.getName())) {
-                targetDev = eth;
-                break;
-            }
-        }
-
-        if (targetDev == null) {
-            System.err.println("Failed to open interface " + interfaceName);
-            return;
-        }
-
-        Pcap pcap = Pcap.openLive(targetDev.getName(), 64 * 1024, Pcap.MODE_PROMISCUOUS, 10 * 1000, errbuf);
-        if (pcap == null) {
-            System.err.println("Error while opening device for capture: " + errbuf.toString());
-            return;
-        }
-
-
-		if (pcap.compile(filter, "tcp port 7890", 0, 0) != Pcap.OK) {
-			System.err.println("Failed compile filter: " + pcap.getErr());
-			System.exit(1);
-		}
-
-		if (pcap.setFilter(filter) != Pcap.OK) {
-			System.err.println("Failed to set Filter: " + pcap.getErr());
-			System.exit(1);
-		}
-		
+      		
 		if (confFile != null) {
 			destTerminalId = null;
 		  try {
-				props = Utils.loadProperties(confFile);
+				props = PropertiesUtils.loadProperties(confFile);
 			} catch (IOException e) {
 				e.printStackTrace();
 				System.exit(1);
@@ -109,29 +85,24 @@ public class Main {
 	        String msisdns = props.getProperty("msisdns");
 	        String[] phoneNumbers = msisdns.split(",");
 	        String s_startTime = props.getProperty("starttime");
-	        String s_endTime = props.getProperty("stoptime");
-	        
-	        PcapDumper dumper = pcap.dumpOpen("out.pcap");
+	        String s_endTime = props.getProperty("stoptime");        
 
 	        DestTerminalFilter terminalFilter = new DestTerminalFilter(phoneNumbers);
 
-	        TracerExecutor executor = new TracerExecutor(pcap, dumper, terminalFilter);
+	        TracerExecutor executor = new TracerExecutor( alldevs, filter,  fileName, terminalFilter);
 	        
 	        TimerScheduler scheduler = new TimerScheduler(executor, Utils.getTime(s_startTime),
 	        		Utils.getTime(s_endTime));
 	        
 		} else if ( destTerminalId != null) {
-			
-			PcapDumper dumper = pcap.dumpOpen(destTerminalId + ".pcap");
 
 	        DestTerminalFilter terminalFilter = new DestTerminalFilter(new String[]{destTerminalId});
 
-	        TracerExecutor executor = new TracerExecutor(pcap, dumper, terminalFilter);
+	        TracerExecutor executor = new TracerExecutor( alldevs,filter, fileName, terminalFilter);
 	        executor.start();
 	        
 		} else {
-			PcapDumper dumper = pcap.dumpOpen("out.pcap");
-	        TracerExecutor executor = new TracerExecutor(pcap, dumper, null);
+	        TracerExecutor executor = new TracerExecutor(alldevs, filter,  fileName, new TcpFilter());
 	        executor.start();
 		}
 		
